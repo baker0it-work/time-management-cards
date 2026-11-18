@@ -161,28 +161,21 @@
       display: block;
       width: 100%;
       height: auto;
-      filter: grayscale(.9) sepia(.18) contrast(.94) brightness(.97);
     }
 
     .hotspot {
       position: absolute;
       z-index: 2;
       display: grid;
-      width: 19.2%;
+      width: 24%;
       aspect-ratio: 1;
       place-items: center;
       transform: translate(-50%, -50%);
-      border: 2px solid var(--loft-copper);
+      border: 0;
       border-radius: 50%;
-      color: var(--loft-ivory);
-      background:
-        radial-gradient(circle at 34% 26%, rgba(255, 255, 255, .07), transparent 26%),
-        repeating-linear-gradient(135deg, #343738 0 2px, #2c2f30 2px 5px);
-      box-shadow:
-        0 4px 0 #6d3c25,
-        0 12px 22px rgba(20, 22, 22, .3),
-        inset 0 0 0 1px rgba(255, 255, 255, .06),
-        inset 0 1px 0 rgba(255, 255, 255, .12);
+      color: transparent;
+      background: transparent;
+      box-shadow: none;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       transition: color .18s ease, background .18s ease, box-shadow .18s ease;
@@ -197,6 +190,7 @@
       stroke-linecap: round;
       stroke-linejoin: round;
       pointer-events: none;
+      opacity: 0;
       transition: transform .18s ease;
     }
 
@@ -251,15 +245,9 @@
     }
 
     .hotspot[aria-pressed="true"] {
-      color: var(--loft-charcoal);
-      background:
-        radial-gradient(circle at 34% 26%, rgba(255, 255, 255, .26), transparent 28%),
-        repeating-linear-gradient(135deg, #d39a72 0 2px, #b96f45 2px 5px);
-      box-shadow:
-        0 4px 0 #754128,
-        0 13px 26px rgba(20, 22, 22, .34),
-        inset 0 0 0 1px rgba(255, 255, 255, .18),
-        inset 0 1px 0 rgba(255, 255, 255, .32);
+      color: transparent;
+      background: transparent;
+      box-shadow: none;
     }
 
     .hotspot:focus-visible { outline: none; }
@@ -564,35 +552,32 @@
         </div>
 
         <div class="map-wrap" aria-label="Схема тем по управлению временем">
-          <img class="map-image" src="Инфо.png" alt="Дерево взаимосвязей тем по управлению временем">
+          <img class="map-image" src="tree-loft-final.png" alt="Девять тем по управлению временем в стиле loft">
           <button class="hotspot" style="left:50%;top:12%;" data-topic="ideology" data-label="Идеология" aria-label="Открыть тему «Идеология»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 22h4M8.3 15.1A7 7 0 1 1 15.7 15c-1.1.8-1.7 1.8-1.7 3h-4c0-1.2-.6-2.1-1.7-2.9Z"/><path d="M12 3v1M4.2 6.2l.7.7M19.8 6.2l-.7.7"/></svg>
           </button>
-          <button class="hotspot" style="left:15%;top:21%;" data-topic="time-wasters" data-label="Поглотители времени" aria-label="Открыть тему «Поглотители времени»">
+          <button class="hotspot" style="left:22%;top:26%;" data-topic="time-wasters" data-label="Поглотители времени" aria-label="Открыть тему «Поглотители времени»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.8 1.7M9 2h6M12 5V2"/></svg>
           </button>
-          <button class="hotspot" style="left:85%;top:21%;" data-topic="environment" data-label="Окружающие" aria-label="Открыть тему «Окружающие»">
+          <button class="hotspot" style="left:78%;top:26%;" data-topic="environment" data-label="Окружающие" aria-label="Открыть тему «Окружающие»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
           </button>
-          <button class="hotspot" style="left:50%;top:32%;" data-topic="planning" data-label="Планирование" aria-label="Открыть тему «Планирование»">
+          <button class="hotspot" style="left:50%;top:41%;" data-topic="planning" data-label="Планирование" aria-label="Открыть тему «Планирование»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 15l2 2 5-5"/></svg>
           </button>
-          <button class="hotspot" style="left:85%;top:42.5%;width:19.5%;" data-topic="priorities" data-label="Приоритеты" aria-label="Открыть тему «Приоритеты»">
+          <button class="hotspot" style="left:22%;top:55%;" data-topic="priorities" data-label="Приоритеты" aria-label="Открыть тему «Приоритеты»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
           </button>
-          <button class="hotspot" style="left:50%;top:55%;" data-topic="information" data-label="Информация" aria-label="Открыть тему «Информация»">
+          <button class="hotspot" style="left:78%;top:55%;" data-topic="information" data-label="Информация" aria-label="Открыть тему «Информация»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
           </button>
-          <button class="hotspot" style="left:15%;top:68%;" data-topic="workday" data-label="Рабочий день" aria-label="Открыть тему «Рабочий день»">
+          <button class="hotspot" style="left:22%;top:85%;" data-topic="workday" data-label="Рабочий день" aria-label="Открыть тему «Рабочий день»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>
           </button>
-          <button class="hotspot" style="left:50%;top:79%;" data-topic="rest" data-label="Отдых" aria-label="Открыть тему «Отдых»">
+          <button class="hotspot" style="left:50%;top:70%;" data-topic="rest" data-label="Отдых" aria-label="Открыть тему «Отдых»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8 8 0 0 1 9.8 3.5 9 9 0 1 0 20.5 14.2Z"/><path d="M17 4v3M15.5 5.5h3"/></svg>
           </button>
-          <button class="hotspot" style="left:15%;top:91%;" data-topic="goals" data-label="Целеполагание" aria-label="Открыть тему «Целеполагание»">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 22V4M5 5h12l-2 4 2 4H5"/></svg>
-          </button>
-          <button class="hotspot" style="left:85%;top:91%;" data-topic="goals" data-label="Целеполагание" aria-label="Открыть тему «Целеполагание»">
+          <button class="hotspot" style="left:78%;top:85%;" data-topic="goals" data-label="Целеполагание" aria-label="Открыть тему «Целеполагание»">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
           </button>
         </div>
