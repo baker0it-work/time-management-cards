@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Интерактивная карта карточек по управлению временем">
+  <title>Карта управления временем</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2316282b'/%3E%3Cpath d='M20 30a12 12 0 1 1 24 0c0 5-3 8-6 11v5H26v-5c-3-3-6-6-6-11Z' fill='%23f4c95d'/%3E%3Cpath d='M27 51h10' stroke='%23f6f1e8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17282b;
+      --muted: #677577;
+      --paper: #f8f5ef;
+      --surface: #fffdf8;
+      --line: rgba(23, 40, 43, .13);
+      --mint: #9fcbbd;
+      --mint-dark: #376f66;
+      --gold: #e7b94d;
+      --violet: #a879f3;
+      --loft-graphite: #26292a;
+      --loft-charcoal: #17191a;
+      --loft-copper: #b96f45;
+      --loft-copper-light: #d49a72;
+      --loft-ivory: #f3e8d9;
+      --shadow: 0 24px 70px rgba(19, 39, 43, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 0%, rgba(159, 203, 189, .34), transparent 28rem),
+        radial-gradient(circle at 95% 95%, rgba(231, 185, 77, .16), transparent 28rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button { font: inherit; }
+
+    .skip-link {
+      position: fixed;
+      left: 1rem;
+      top: -4rem;
+      z-index: 99;
+      padding: .75rem 1rem;
+      color: white;
+      background: var(--ink);
+      border-radius: .75rem;
+    }
+
+    .skip-link:focus { top: 1rem; }
+
+    .page {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: clamp(1rem, 3vw, 2.5rem);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2rem;
+      margin-bottom: clamp(1.25rem, 3vw, 2.25rem);
+    }
+
+    .eyebrow {
+      margin: 0 0 .35rem;
+      color: var(--mint-dark);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-size: clamp(2rem, 4vw, 4rem);
+      line-height: .98;
+      letter-spacing: -.055em;
+    }
+
+    .hint {
+      max-width: 29rem;
+      margin: 0 0 .2rem;
+      color: var(--muted);
+      font-size: .95rem;
+      line-height: 1.5;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(340px, .88fr) minmax(480px, 1.12fr);
+      gap: clamp(1rem, 2.2vw, 2rem);
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, .82);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .map-panel {
+      position: sticky;
+      top: 1rem;
+      padding: clamp(.9rem, 2vw, 1.3rem);
+      border-radius: 1.75rem;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0 0 .85rem;
+    }
+
+    .panel-heading h2 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: -.015em;
+    }
+
+    .panel-heading span {
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    .map-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 620px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid rgba(23, 40, 43, .08);
+      border-radius: 1.15rem;
+      background: #e8e8e7;
+      isolation: isolate;
+    }
+
+    .map-wrap::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .38);
+    }
+
+    .map-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: grayscale(.9) sepia(.18) contrast(.94) brightness(.97);
+    }
+
+    .hotspot {
+      position: absolute;
+      z-index: 2;
+      display: grid;
+      width: 19.2%;
+      aspect-ratio: 1;
+      place-items: center;
+      transform: translate(-50%, -50%);
+      border: 2px solid var(--loft-copper);
+      border-radius: 50%;
+      color: var(--loft-ivory);
+      background:
+        radial-gradient(circle at 34% 26%, rgba(255, 255, 255, .07), transparent 26%),
+        repeating-linear-gradient(135deg, #343738 0 2px, #2c2f30 2px 5px);
+      box-shadow:
+        0 4px 0 #6d3c25,
+        0 12px 22px rgba(20, 22, 22, .3),
+        inset 0 0 0 1px rgba(255, 255, 255, .06),
+        inset 0 1px 0 rgba(255, 255, 255, .12);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .hotspot svg {
+      width: 43%;
+      height: 43%;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.65;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+      transition: transform .18s ease;
+    }
+
+    .hotspot::before {
+      content: "";
+      position: absolute;
+      inset: -5px;
+      border: 3px solid transparent;
+      border-radius: inherit;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+
+    .hotspot::after {
+      content: attr(data-label);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 10px);
+      width: max-content;
+      max-width: 180px;
+      padding: .48rem .65rem;
+      transform: translate(-50%, 7px);
+      border-radius: .6rem;
+      color: white;
+      background: var(--ink);
+      box-shadow: 0 8px 24px rgba(23, 40, 43, .2);
+      font-size: .75rem;
+      font-weight: 750;
+      line-height: 1;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .hotspot:hover::after,
+    .hotspot:focus-visible::after {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .hotspot:hover::before,
+    .hotspot:focus-visible::before,
+    .hotspot[aria-pressed="true"]::before {
+      border-color: white;
+      box-shadow: 0 0 0 3px var(--loft-copper), 0 10px 26px rgba(20, 22, 22, .34);
+    }
+
+    .hotspot:hover svg,
+    .hotspot:focus-visible svg,
+    .hotspot[aria-pressed="true"] svg {
+      transform: scale(1.1);
+    }
+
+    .hotspot[aria-pressed="true"] {
+      color: var(--loft-charcoal);
+      background:
+        radial-gradient(circle at 34% 26%, rgba(255, 255, 255, .26), transparent 28%),
+        repeating-linear-gradient(135deg, #d39a72 0 2px, #b96f45 2px 5px);
+      box-shadow:
+        0 4px 0 #754128,
+        0 13px 26px rgba(20, 22, 22, .34),
+        inset 0 0 0 1px rgba(255, 255, 255, .18),
+        inset 0 1px 0 rgba(255, 255, 255, .32);
+    }
+
+    .hotspot:focus-visible { outline: none; }
+
+    .topic-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+      margin-top: .8rem;
+    }
+
+    .topic-chip {
+      min-height: 2.25rem;
+      padding: .42rem .7rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, .7);
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: color .16s ease, background .16s ease, border-color .16s ease;
+    }
+
+    .topic-chip:hover { border-color: var(--loft-copper); }
+
+    .topic-chip[aria-pressed="true"] {
+      color: white;
+      border-color: var(--loft-copper);
+      background: var(--loft-graphite);
+    }
+
+    .card-panel {
+      min-height: 720px;
+      padding: clamp(1rem, 2.4vw, 2rem);
+      border-radius: 2rem;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: 1.1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.05rem;
+      height: 2.05rem;
+      margin-bottom: .7rem;
+      border-radius: 50%;
+      color: var(--ink);
+      background: var(--gold);
+      font-size: .78rem;
+      font-weight: 850;
+    }
+
+    .card-top h2 {
+      margin: 0;
+      font-size: clamp(1.7rem, 3vw, 3rem);
+      line-height: 1;
+      letter-spacing: -.045em;
+    }
+
+    .counter {
+      flex: 0 0 auto;
+      margin: .2rem 0 0;
+      padding: .5rem .7rem;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(159, 203, 189, .22);
+      font-size: .78rem;
+      font-weight: 750;
+    }
+
+    .pages {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(.75rem, 1.5vw, 1.1rem);
+      width: min(100%, 560px);
+      margin: clamp(1rem, 2vw, 1.5rem) auto 0;
+      align-items: start;
+    }
+
+    .text-card {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(1.25rem, 3vw, 2rem);
+      border: 1px solid rgba(185, 111, 69, .28);
+      border-radius: 1.05rem;
+      background:
+        linear-gradient(rgba(255, 253, 248, .92), rgba(247, 243, 235, .92)),
+        repeating-linear-gradient(135deg, transparent 0 4px, rgba(38, 41, 42, .03) 4px 5px);
+      box-shadow: 0 12px 30px rgba(23, 40, 43, .08), inset 0 1px 0 white;
+    }
+
+    .text-card h3 {
+      max-width: calc(100% - 3rem);
+      margin: 0 0 1rem;
+      font-size: clamp(1.45rem, 2.6vw, 2rem);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+
+    .text-card p,
+    .text-card li {
+      font-size: clamp(1rem, 1.35vw, 1.12rem);
+      line-height: 1.58;
+    }
+
+    .text-card p { margin: 0 0 1rem; }
+    .text-card p:last-child { margin-bottom: 0; }
+
+    .text-card ul {
+      display: grid;
+      gap: .65rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .text-card li {
+      position: relative;
+      padding-left: 1.45rem;
+    }
+
+    .text-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .66em;
+      width: .48rem;
+      height: .48rem;
+      border-radius: 2px;
+      background: var(--loft-copper);
+      transform: rotate(45deg);
+    }
+
+    .text-card mark {
+      padding: 0;
+      color: #8b5aca;
+      background: transparent;
+      font-weight: 720;
+    }
+
+    .text-card .takeaway {
+      margin-top: 1.35rem;
+      padding: 1rem 1.1rem;
+      border-left: 4px solid var(--loft-copper);
+      border-radius: 0 .7rem .7rem 0;
+      color: #7549b2;
+      background: rgba(168, 121, 243, .08);
+      font-weight: 680;
+    }
+
+    .card-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      min-height: 2.75rem;
+      margin-top: 1.35rem;
+      padding: .68rem .9rem;
+      border: 1px solid var(--loft-copper);
+      border-radius: .75rem;
+      color: var(--loft-ivory);
+      background: var(--loft-graphite);
+      box-shadow: 0 3px 0 #6d3c25;
+      font-size: .88rem;
+      font-weight: 780;
+      text-decoration: none;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .card-link::after {
+      content: "+";
+      display: grid;
+      width: 1.3rem;
+      height: 1.3rem;
+      place-items: center;
+      border: 1px solid rgba(243, 232, 217, .42);
+      border-radius: 50%;
+      line-height: 1;
+    }
+
+    .card-link:hover,
+    .card-link:focus-visible {
+      background: #343738;
+      box-shadow: 0 5px 0 #6d3c25, 0 9px 18px rgba(23, 40, 43, .16);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .page-tag {
+      position: absolute;
+      top: .65rem;
+      right: .65rem;
+      display: inline-flex;
+      align-items: center;
+      min-width: 2rem;
+      height: 2rem;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, .7);
+      border-radius: 50%;
+      color: white;
+      background: rgba(23, 40, 43, .78);
+      box-shadow: 0 6px 18px rgba(23, 40, 43, .18);
+      font-size: .75rem;
+      font-weight: 800;
+      backdrop-filter: blur(6px);
+    }
+
+    .card-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      padding-top: 1.15rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .nav-button {
+      min-height: 2.8rem;
+      padding: .65rem .95rem;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      color: var(--ink);
+      background: var(--surface);
+      font-weight: 760;
+      cursor: pointer;
+      transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+    }
+
+    .nav-button:hover,
+    .nav-button:focus-visible {
+      border-color: var(--mint-dark);
+      box-shadow: 0 7px 20px rgba(23, 40, 43, .1);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .keyboard-hint {
+      color: var(--muted);
+      font-size: .78rem;
+      text-align: center;
+    }
+
+    .fade-in { animation: reveal .32s ease both; }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 980px) {
+      .topbar { align-items: flex-start; flex-direction: column; gap: .8rem; }
+      .workspace { grid-template-columns: 1fr; }
+      .map-panel { position: relative; top: 0; }
+      .map-wrap { max-width: 540px; }
+      .card-panel { min-height: 0; }
+    }
+
+    @media (max-width: 620px) {
+      .page { padding: .75rem; }
+      .topbar { padding: .5rem .35rem; }
+      .hint { font-size: .9rem; }
+      .map-panel, .card-panel { border-radius: 1.25rem; }
+      .map-panel { padding: .65rem; }
+      .pages { grid-template-columns: 1fr; }
+      .card-nav { align-items: stretch; }
+      .keyboard-hint { display: none; }
+      .nav-button { flex: 1; }
+      .hotspot::after { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#cards">К карточкам</a>
+  <main class="page">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Интерактивная карта</p>
+        <h1>Управление временем</h1>
+      </div>
+      <p class="hint">Выберите узел на карте или тему под ней. Карточки откроются справа — в порядке, заданном исходной схемой.</p>
+    </header>
+
+    <div class="workspace">
+      <section class="panel map-panel" aria-labelledby="map-title">
+        <div class="panel-heading">
+          <h2 id="map-title">Дерево тем</h2>
+          <span>9 разделов</span>
+        </div>
+
+        <div class="map-wrap" aria-label="Схема тем по управлению временем">
+          <img class="map-image" src="Инфо.png" alt="Дерево взаимосвязей тем по управлению временем">
+          <button class="hotspot" style="left:50%;top:12%;" data-topic="ideology" data-label="Идеология" aria-label="Открыть тему «Идеология»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 22h4M8.3 15.1A7 7 0 1 1 15.7 15c-1.1.8-1.7 1.8-1.7 3h-4c0-1.2-.6-2.1-1.7-2.9Z"/><path d="M12 3v1M4.2 6.2l.7.7M19.8 6.2l-.7.7"/></svg>
+          </button>
+          <button class="hotspot" style="left:15%;top:21%;" data-topic="time-wasters" data-label="Поглотители времени" aria-label="Открыть тему «Поглотители времени»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.8 1.7M9 2h6M12 5V2"/></svg>
+          </button>
+          <button class="hotspot" style="left:85%;top:21%;" data-topic="environment" data-label="Окружающие" aria-label="Открыть тему «Окружающие»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+          </button>
+          <button class="hotspot" style="left:50%;top:32%;" data-topic="planning" data-label="Планирование" aria-label="Открыть тему «Планирование»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 15l2 2 5-5"/></svg>
+          </button>
+          <button class="hotspot" style="left:85%;top:42.5%;width:19.5%;" data-topic="priorities" data-label="Приоритеты" aria-label="Открыть тему «Приоритеты»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+          </button>
+          <button class="hotspot" style="left:50%;top:55%;" data-topic="information" data-label="Информация" aria-label="Открыть тему «Информация»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
+          </button>
+          <button class="hotspot" style="left:15%;top:68%;" data-topic="workday" data-label="Рабочий день" aria-label="Открыть тему «Рабочий день»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>
+          </button>
+          <button class="hotspot" style="left:50%;top:79%;" data-topic="rest" data-label="Отдых" aria-label="Открыть тему «Отдых»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8 8 0 0 1 9.8 3.5 9 9 0 1 0 20.5 14.2Z"/><path d="M17 4v3M15.5 5.5h3"/></svg>
+          </button>
+          <button class="hotspot" style="left:15%;top:91%;" data-topic="goals" data-label="Целеполагание" aria-label="Открыть тему «Целеполагание»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 22V4M5 5h12l-2 4 2 4H5"/></svg>
+          </button>
+          <button class="hotspot" style="left:85%;top:91%;" data-topic="goals" data-label="Целеполагание" aria-label="Открыть тему «Целеполагание»">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+          </button>
+        </div>
+
+        <nav class="topic-list" aria-label="Темы карточек" id="topic-list"></nav>
+      </section>
+
+      <section class="panel card-panel" id="cards" aria-live="polite" aria-labelledby="card-title">
+        <div class="card-top">
+          <div>
+            <span class="section-number" id="section-number">01</span>
+            <h2 id="card-title">Идеология</h2>
+          </div>
+          <p class="counter" id="counter">2 карточки</p>
+        </div>
+
+        <div class="pages" id="pages"></div>
+
+        <div class="card-nav">
+          <button class="nav-button" id="prev" type="button" aria-label="Предыдущая тема">Назад</button>
+          <span class="keyboard-hint">Можно использовать клавиши ← и →</span>
+          <button class="nav-button" id="next" type="button" aria-label="Следующая тема">Далее</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const topics = [
+      {
+        id: 'ideology',
+        title: 'Идеология',
+        cards: [
+          {
+            heading: 'Идеология',
+            content: `<p>Тайм-менеджмент: не голая техника! Все техники — лишь реализация <mark>мировоззрения</mark>. Вдумчиво и осмысленно используйте невосполнимое время вашей жизни в соответствии с осознанными личными ценностями и приоритетами.</p><p class="takeaway">Вы перестанете забывать принципы тайм-менеджмента.</p>`
+          },
+          {
+            content: `<ul><li>Помните: время необратимо. Это материал, из которого сделана жизнь.</li><li>Поверьте, человек может всё, если он этого захочет.</li><li>Развивайтесь, двигайтесь и никогда не останавливайтесь!</li><li>Помогите другим найти свои цели и ценности!</li></ul>`
+          }
+        ]
+      },
+      {
+        id: 'time-wasters',
+        title: 'Поглотители времени',
+        cards: [
+          {
+            heading: 'Поглотители времени',
+            content: `<p>Значительную часть имеющегося времени мы тратим непродуктивно. Виной тому всеобщая неорганизованность, бюрократические безумия, неуважение людей ко времени. У каждого из нас есть «поглотители времени», которыми мы можем управлять.</p>`
+          },
+          {
+            content: `<ul><li>Проводите хронометраж рабочего дня.</li><li>Анализируйте по нему потери времени.</li><li>Используйте время в дороге.</li><li>Используйте время в командировках.</li><li>Предвидьте технические форс-мажоры.</li><li>Проводите эффективные совещания.</li><li>Постоянно контролируйте время.</li></ul>`
+          }
+        ]
+      },
+      {
+        id: 'environment',
+        title: 'Окружающие',
+        cards: [
+          {
+            heading: 'Окружающие',
+            content: `<p>Мы не можем быть эффективны на 100%, если не координируем свой личный тайм-менеджмент с <mark>окружающими</mark>: коллегами, руководством, подчинёнными, родственниками, клиентами.</p><ul><li>Донесите ТМ-технику до вашего руководства.</li><li>Мотивируйте и зажигайте подчинённых ТМ-идеей.</li><li>Постепенно внедряйте тайм-менеджмент у подчинённых.</li></ul>`
+          }
+        ]
+      },
+      {
+        id: 'planning',
+        title: 'Планирование',
+        cards: [
+          {
+            heading: 'Планирование',
+            content: `<p>Есть много различных видов планирования: жёсткие и гибкие, для занятых и творческих. Выберите тот метод, который оптимально подходит именно для ваших личностных особенностей и специфики вашей работы.</p><p class="takeaway">Позволит начать изучать бизнес-планирование.</p><p>Организуйте контекстное и среднесуточное <mark>планирование</mark> по методу «Задачи на день / на неделю / на год» и гарантируйте себе уверенность, что уложитесь в срок.</p>`
+          }
+        ]
+      },
+      {
+        id: 'priorities',
+        title: 'Приоритеты',
+        cards: [
+          {
+            heading: 'Приоритеты',
+            content: `<p>«Всё-всё-всё» нельзя успеть, нужно выбирать. Это не значит отказаться от каких-то целей навсегда. Определите, какие цели для вас <mark>приоритетные</mark> на данный момент. Научитесь отсеивать лишние, навязанные дела. Тратьте ваше невосполнимое время на Главное.</p><ul><li>Научитесь говорить «Нет».</li><li>Покупайте чужое время.</li><li>Делегируйте и контролируйте.</li><li>Определите приоритетность задач.</li></ul>`
+          }
+        ]
+      },
+      {
+        id: 'information',
+        title: 'Информация',
+        cards: [
+          {
+            heading: 'Информация',
+            content: `<p>В современном мире мы ежедневно пропускаем через себя огромное количество информации, с которой мы должны работать. Внедрите технику её фильтрации, хранения и движения. Ваша система <mark>обработки информации</mark> должна отвечать на самые простые вопросы: от «как должны храниться документы на рабочем столе» и до «когда, как и чему учиться», или «что, как и зачем читать?»</p><p class="takeaway">Вы сможете видеть больше вариантов для инвестирования одновременно и выбирать между разными видами образования.</p>`
+          },
+          {
+            content: `<ul><li>Спланируйте ритм чтения деловой литературы.</li><li>Фильтруйте информационный мусор.</li><li>Заведите творческую картотеку.</li></ul>`
+          }
+        ]
+      },
+      {
+        id: 'workday',
+        title: 'Рабочий день',
+        cards: [
+          {
+            heading: 'Рабочий день',
+            content: `<p>Между целями и результатами лежит большое количество рутинной работы. Как её организовать, как проложить верный путь к достижению результатов, укладываясь при этом в плановые сроки? Настройте личную систему планирования рабочего дня с использованием «жёстких» и «гибких» задач, чтобы планировать реалистично и всегда успевать выполнять главное.</p>`
+          },
+          {
+            content: `<ul><li>Планируйте день за днём.</li><li>Используйте разные цвета в ежедневнике.</li><li>Создайте стратегический план.</li><li>Освойте идею жёстких и гибких задач.</li><li>Оставляйте резервы для жёстких задач.</li><li>Разумная пунктуальность.</li></ul>`
+          }
+        ]
+      },
+      {
+        id: 'rest',
+        title: 'Отдых',
+        cards: [
+          {
+            heading: 'Отдых',
+            content: `<p>Приходилось ли вам на работе чувствовать себя уставшим и измотанным, потерявшим вкус даже к любимому делу? В личном тайм-менеджменте важно не только количество времени, но и качество. Наладьте грамотный отдых в течение рабочего дня и в нерабочее время.</p><p class="takeaway">Позволит отдыхать, когда нужно. Понижает стресс.</p>`
+          },
+          {
+            content: `<ul><li>Создайте ритмичность «работа — отдых».</li><li>Максимально переключайтесь.</li><li>Ленитесь.</li><li>Спите эффективно.</li><li>Освойте микросон.</li><li>Радуйтесь жизни.</li></ul>`
+          }
+        ]
+      },
+      {
+        id: 'goals',
+        title: 'Целеполагание',
+        cards: [
+          {
+            heading: 'Целеполагание',
+            content: `<p>Задумайтесь о том, что даёт вам энергию на глобальном уровне: о ваших мечтах и желаниях. Чтобы эти мечты сбывались, сначала нужно превратить их в <mark>цели</mark>.</p><p class="takeaway">Позволит в будущем бросить вредные привычки.</p><ul><li>Представьте себя через несколько лет.</li><li>Определите свои ценности.</li><li>Что для вас действительно важно?</li><li>Ищите ваше призвание.</li><li>Спланируйте цели на годы вперёд.</li><li>Конкретизируйте ближайшие шаги.</li></ul>`
+          }
+        ]
+      }
+    ];
+
+    const topicList = document.querySelector('#topic-list');
+    const pages = document.querySelector('#pages');
+    const title = document.querySelector('#card-title');
+    const number = document.querySelector('#section-number');
+    const counter = document.querySelector('#counter');
+    const prev = document.querySelector('#prev');
+    const next = document.querySelector('#next');
+    let activeIndex = 0;
+
+    topics.forEach((topic, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'topic-chip';
+      button.dataset.topic = topic.id;
+      button.textContent = topic.title;
+      button.addEventListener('click', () => selectTopic(index, true));
+      topicList.append(button);
+    });
+
+    document.querySelectorAll('.hotspot').forEach((button) => {
+      button.addEventListener('click', () => {
+        const index = topics.findIndex((topic) => topic.id === button.dataset.topic);
+        selectTopic(index, true);
+      });
+    });
+
+    function pluralizeCards(value) {
+      return value === 1 ? '1 карточка' : `${value} карточки`;
+    }
+
+    function selectTopic(index, shouldFocus = false) {
+      activeIndex = (index + topics.length) % topics.length;
+      const topic = topics[activeIndex];
+
+      title.textContent = topic.title;
+      number.textContent = String(activeIndex + 1).padStart(2, '0');
+      counter.textContent = pluralizeCards(topic.cards.length);
+      pages.classList.remove('fade-in');
+      pages.replaceChildren(...topic.cards.map((card, pageIndex) => {
+        const article = document.createElement('article');
+        article.className = 'text-card';
+        article.setAttribute('aria-label', `Карточка «${topic.title}»${topic.cards.length > 1 ? `, часть ${pageIndex + 1}` : ''}`);
+        article.innerHTML = `${card.heading ? `<h3>${card.heading}</h3>` : ''}${card.content}`;
+
+        const detailsLink = document.createElement('a');
+        detailsLink.className = 'card-link';
+        detailsLink.href = `cards/${topic.id}-${pageIndex + 1}.html`;
+        detailsLink.textContent = 'Подробнее и примеры';
+        detailsLink.setAttribute('aria-label', `Открыть подробную страницу: ${topic.title}, карточка ${pageIndex + 1}`);
+        article.append(detailsLink);
+
+        if (topic.cards.length > 1) {
+          const tag = document.createElement('span');
+          tag.className = 'page-tag';
+          tag.textContent = pageIndex + 1;
+          tag.setAttribute('aria-hidden', 'true');
+          article.append(tag);
+        }
+        return article;
+      }));
+
+      requestAnimationFrame(() => pages.classList.add('fade-in'));
+
+      document.querySelectorAll('[data-topic]').forEach((control) => {
+        control.setAttribute('aria-pressed', control.dataset.topic === topic.id ? 'true' : 'false');
+      });
+
+      prev.setAttribute('aria-label', `Предыдущая тема: ${topics[(activeIndex - 1 + topics.length) % topics.length].title}`);
+      next.setAttribute('aria-label', `Следующая тема: ${topics[(activeIndex + 1) % topics.length].title}`);
+
+      if (shouldFocus && window.matchMedia('(max-width: 980px)').matches) {
+        document.querySelector('#cards').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    prev.addEventListener('click', () => selectTopic(activeIndex - 1));
+    next.addEventListener('click', () => selectTopic(activeIndex + 1));
+
+    document.addEventListener('keydown', (event) => {
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+      if (event.key === 'ArrowLeft') selectTopic(activeIndex - 1);
+      if (event.key === 'ArrowRight') selectTopic(activeIndex + 1);
+    });
+
+    selectTopic(0);
+  </script>
+</body>
+</html>
